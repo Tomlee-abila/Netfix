@@ -4,6 +4,9 @@ from django.views.generic import CreateView, TemplateView
 
 from .forms import CustomerSignUpForm, CompanySignUpForm, UserLoginForm
 from .models import User, Company, Customer
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
+
 
 
 def register(request):
@@ -41,4 +44,26 @@ class CompanySignUpView(CreateView):
 
 
 def LoginUserView(request):
-    pass
+    if request.user.is_authenticated:
+        return redirect('/')
+    
+    if request.method == 'POST':
+        form = UserLoginForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            password = form.cleaned_dat['password']
+            
+            user = authenticate(request, email=email, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('/')
+            else:
+                form.add_error(None, 'Invalid email or password.')
+                
+    else:
+        form = UserLoginForm()
+    return render(request, 'users/login.html', {'form': form})
+    
+@login_required
+def profile(request):
+    return render(request, 'users/profile.html', {'user': request.user})
