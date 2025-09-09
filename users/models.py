@@ -16,8 +16,11 @@ class User(AbstractUser):
 
 
 class Customer(models.Model):
-    user = models.ForeignKey('User', on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     birth = models.DateField()
+    
+    def __str__(self):
+        return self.username
 
 
 class Company(models.Model):
