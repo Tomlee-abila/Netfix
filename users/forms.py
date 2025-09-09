@@ -25,16 +25,62 @@ def validate_date_of_birth(value):
 
 
 class CustomerSignUpForm(UserCreationForm):
-    pass
+    email = forms.EmailField(
+        validators=[validate_email],
+        widget=forms.EmailInput(attrs={'placeholder': 'Enter Email'}))
+    username = forms.CharField(
+        label='Username',
+        widget=forms.TextInput(attrs={'placeholder': 'Enter Username'}))
+    password1 = forms.CharField(
+        label='Password',
+        widget=forms.PasswordInput(attrs={'placeholder': 'Enter Password'}))
+    password2 = forms.CharField(
+        label='Confirm Password',
+        widget=forms.PasswordInput(attrs={'placeholder': 'Confirm Password'}))
+    date_of_birth = forms.DateField(
+        label='Date of Birth',
+        widget=DateInput(attrs={'placeholder': 'YYYY-MM-DD', 'class': 'form-control'}),
+        input_formats=['%Y-%m-%d'],
+        help_text="Date of birth should not be beyond 31st Dec 2009.  Format: YYYY-MM-DD.  Example: 1990-12-3",
+        validators=[validate_date_of_birth])
+    class Meta:
+        model = User
+        fields = ('email', 'username', 'password1', 'password2', 'date_of_birth')
+        
+    @transaction.atomic
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.is_customer = True
+        if commit:
+            user.save()
+            Customer.objects.create(user=user, birth=self.cleaned_data['date_of_birth'])
+            return user
+            
 
 
 class CompanySignUpForm(UserCreationForm):
-    pass
+    email = forms.EmailField(validators=[validate_email])
+    field = forms.ChoiceField(
+        choices=Company._meta.get_field('field').choices,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password1', 'password2', 'field']
+        
+        @transaction.atomic
+        def save(self, commit=True):
+            user = super().save(commit=False)
+            user.is_company = True
+            if commit:
+                user.save()
+                Company.objects.create(user=user, field=self.cleaned_data['field'])
+                return user
 
 
 class UserLoginForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        super(UserLoginForm, self).__init__(*args, **kwargs)
+    # def __init__(self, *args, **kwargs):
+    #     super(UserLoginForm, self).__init__(*args, **kwargs)
 
     email = forms.EmailField(widget=forms.TextInput(
         attrs={'placeholder': 'Enter Email'}))
